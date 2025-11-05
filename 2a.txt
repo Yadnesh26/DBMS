@@ -1,5 +1,5 @@
 -- === Part 1: Table Creation (Problem Statement 1-4) ===
-[cite_start]-- Creating the Department table with a Unique constraint [cite: 3, 6, 7, 8, 10, 11]
+
 CREATE TABLE Department(
     dept_no int,
     dept_name varchar(15),
@@ -7,7 +7,7 @@ CREATE TABLE Department(
     UNIQUE(dept_name)
 );
 
-[cite_start]-- Creating the Instructor table with Not Null and Primary Key constraints [cite: 26]
+
 CREATE TABLE instructor(
     ins_id int,
     ins_name varchar(15) NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE instructor(
     PRIMARY KEY(ins_id)
 );
 
-[cite_start]-- Creating the Course table with a Primary Key constraint [cite: 43]
+
 CREATE TABLE course(
     course_id int,
     title varchar(15),
@@ -26,7 +26,7 @@ CREATE TABLE course(
     PRIMARY KEY(course_id)
 );
 
-[cite_start]-- Creating the Teaches table with Foreign Key constraints [cite: 64, 65, 66, 67]
+
 CREATE TABLE teachers (
     teacher_id int,
     course_id int,
@@ -37,7 +37,7 @@ CREATE TABLE teachers (
 );
 
 -- === Part 2: Data Insertion (Implied from PDF for Queries) ===
-[cite_start]-- This data is shown in your 'SELECT' query results [cite: 151, 154, 157, 197, 199, 202, 374-382]
+
 INSERT INTO Department (dept_no, dept_name, bldg_name) VALUES 
 (1, 'comp', 'A'), 
 (2, 'mech', 'B'), 
@@ -48,7 +48,7 @@ INSERT INTO instructor (ins_id, ins_name, dept_no, salary, mob_no) VALUES
 (2, 'B', 2, 12000, 11220), 
 (3, 'C', 3, 10500, 11020);
 
-[cite_start]-- This data is needed for Query 20 to work [cite: 661-663]
+
 INSERT INTO course (course_id, title, dept_no, credits) VALUES
 (101, 'DBMS', 1, 4);
 
@@ -173,5 +173,6 @@ WHERE teachers.semester = 2
   AND Department.dept_name = "comp"
   AND instructor.ins_id = teachers.teacher_id
   AND instructor.dept_no = Department.dept_no;
+
 
 SELECT * FROM new1; [cite_start]-- To verify the final view [cite: 653]
