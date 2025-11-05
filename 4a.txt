@@ -1,0 +1,95 @@
+-- === Part 1: Table Creation ===
+--
+CREATE TABLE Stud_Marks(
+    name varchar(10), 
+    total_marks int
+);
+
+--
+CREATE TABLE Result(
+    Roll int, 
+    Name varchar(10), 
+    Class varchar(10)
+);
+
+-- === Part 2: Data Insertion ===
+--
+INSERT INTO Stud_Marks VALUES('ABC', 1000);
+INSERT INTO Stud_Marks VALUES('XYZ', 900);
+INSERT INTO Stud_Marks VALUES('PQR', 850);
+INSERT INTO Stud_Marks VALUES('LMN', 800);
+INSERT INTO Stud_Marks VALUES('RST', 950);
+
+-- === Part 3: Stored Procedure (proc_Grade) ===
+--
+CREATE OR REPLACE PROCEDURE proc_Grade(
+    s_name IN varchar, 
+    marks IN int
+)
+AS
+    s_class varchar(10);
+    s_roll int := 0;
+BEGIN
+    s_roll := s_roll + 1;
+    
+    IF marks <= 1500 AND marks >= 990 THEN
+        s_class := 'Distinction';
+    ELSIF marks <= 989 AND marks >= 900 THEN
+        s_class := 'First Class';
+    ELSIF marks <= 899 AND marks >= 825 THEN
+        s_class := 'Higher Second Class';
+    ELSE
+        s_class := 'Fail';
+    END IF;
+    
+    INSERT INTO Result VALUES(s_roll, s_name, s_class);
+END;
+/
+
+-- === Part 4: PL/SQL Block to Call the Procedure ===
+--
+DECLARE
+    CURSOR stud_cursor IS SELECT * FROM Stud_Marks;
+    s_name varchar(10);
+    s_marks int;
+BEGIN
+    OPEN stud_cursor;
+    LOOP
+        FETCH stud_cursor INTO s_name, s_marks;
+        EXIT WHEN stud_cursor%NOTFOUND;
+        proc_Grade(s_name, s_marks); -- Calling the procedure
+    END LOOP;
+    CLOSE stud_cursor;
+END;
+/
+
+-- === Part 5: Stored Function (totalStudents) ===
+--
+CREATE OR REPLACE FUNCTION totalStudents(
+    class_name IN varchar
+)
+RETURN int 
+AS
+    total int;
+BEGIN
+    SELECT count(*) INTO total FROM Result 
+    WHERE Class = class_name;
+    RETURN total;
+END;
+/
+
+-- === Part 6: PL/SQL Block to Call the Function ===
+--
+DECLARE
+    total_students int;
+    class_n varchar(10) := 'First Class';
+BEGIN
+    total_students := totalStudents(class_n); -- Calling the function
+    dbms_output.put_line('Total students in ' || class_n || ': ' || total_students);
+END;
+/
+
+-- === Part 7: Verify Results ===
+--
+SELECT * FROM Stud_Marks;
+SELECT * FROM Result;
