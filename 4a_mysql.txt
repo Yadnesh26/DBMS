@@ -56,7 +56,7 @@ BEGIN
         -- Calculate fine (ELSEIF in MySQL, not ELSIF)
         IF v_mdays >= 15 AND v_mdays < 30 THEN 
             SET v_fine_amt = (v_mdays - 15) * 5;
-        ELSEIF v_mdays >= 30 THEN [cite: 96]
+        ELSEIF v_mdays >= 30 THEN 
             SET v_fine_amt = (15 * 5) + (v_mdays - 30) * 50; 
         END IF;
         
@@ -91,4 +91,5 @@ CALL sp_return_book(99, 'nonexistent book');
 -- 6. Verify the results
 SELECT * FROM borrower_t7; 
 SELECT * FROM fine_t7; 
+
 
