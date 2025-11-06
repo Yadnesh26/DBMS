@@ -1,107 +1,93 @@
- -- === Part 1: Table Creation ===
-CREATE TABLE Stud_Marks(
-    name varchar(10), 
-    total_marks int
-);
+-- 1. Create tables
+CREATE TABLE borrower_t7(
+    roll_no INT,
+    name VARCHAR(20),
+    date_of_i DATE, 
+    name_of_book VARCHAR(20), 
+    status VARCHAR(10)
+); 
 
--- Note: Added AUTO_INCREMENT and PRIMARY KEY for the 'Roll' column.
--- This fixes the bug in the original procedure where Roll was always 1.
-CREATE TABLE Result(
-    Roll int AUTO_INCREMENT PRIMARY KEY, 
-    Name varchar(10), 
-    Class varchar(10)
-);
+CREATE TABLE fine_t7(
+    roll_no INT,
+    date_of_r DATE,
+    amt INT
+); 
 
--- === Part 2: Data Insertion ===
-INSERT INTO Stud_Marks VALUES('ABC', 1000);
-INSERT INTO Stud_Marks VALUES('XYZ', 900);
-INSERT INTO Stud_Marks VALUES('PQR', 850);
-INSERT INTO Stud_Marks VALUES('LMN', 800);
-INSERT INTO Stud_Marks VALUES('RST', 950);
+-- 2. Insert data (Note: Dates are in 'YYYY-MM-DD' format for MySQL)
+INSERT INTO borrower_t7 VALUES(1, 'harsh', '2017-06-12', 'harry potter', 'i'); 
+INSERT INTO borrower_t7 VALUES (2, 'sandesh', '2017-06-15', 'iceage', 'r');
+INSERT INTO borrower_t7 VALUES (3, 'Rahul', '2017-07-25', 'pokemon', 'i');
+INSERT INTO borrower_t7 VALUES (4, 'sarvesh', '2017-04-20', 'duel', 'r'); 
+INSERT INTO borrower_t7 VALUES (5, 'ishwari', '2017-05-22', 'hindikatha', 'i'); 
 
--- === Part 3: Stored Procedure (proc_Grade) ===
-DELIMITER $
-DROP PROCEDURE IF EXISTS proc_Grade $
-CREATE PROCEDURE proc_Grade(
-    IN s_name varchar(10), 
-    IN marks int
+-- 3. Change delimiter to define the procedure
+DELIMITER $$
+
+-- 4. Create a stored procedure to replace the PL/SQL block
+CREATE PROCEDURE sp_return_book(
+    IN p_roll_no INT,
+    IN p_bookname VARCHAR(20)
 )
 BEGIN
-    DECLARE s_class varchar(10);
-    -- The s_roll logic from the original is removed; AUTO_INCREMENT handles it.
+    DECLARE v_mdays INT DEFAULT 0;
+    DECLARE v_ndays DATE;
+    DECLARE v_fine_amt INT DEFAULT 0;
+    DECLARE v_message VARCHAR(100) DEFAULT 'Book returned successfully.';
     
-    IF marks <= 1500 AND marks >= 990 THEN
-        SET s_class = 'Distinction';
-    ELSEIF marks <= 989 AND marks >= 900 THEN
-        SET s_class = 'First Class';
-    ELSEIF marks <= 899 AND marks >= 825 THEN
-        SET s_class = 'Higher Second Class';
-    ELSE
-        SET s_class = 'Fail';
+    -- Handler for 'no_data_found'
+    DECLARE CONTINUE HANDLER FOR NOT FOUND
+        SET v_message = 'No data found for this roll number and book.';
+        
+    -- Handler for other errors
+    DECLARE CONTINUE HANDLER FOR SQLEXCEPTION
+        SET v_message = 'An error occurred.';
+
+    -- Get the issue date
+    SELECT date_of_i INTO v_ndays 
+    FROM borrower_t7 
+    WHERE roll_no = p_roll_no AND name_of_book = p_bookname; 
+
+    -- Check if the SELECT was successful (v_message will be changed by handler if not)
+    IF v_message = 'Book returned successfully.' THEN
+    
+        -- Calculate days (DATEDIFF in MySQL)
+        SET v_mdays = DATEDIFF(CURDATE(), v_ndays); 
+        
+        -- Calculate fine (ELSEIF in MySQL, not ELSIF)
+        IF v_mdays >= 15 AND v_mdays < 30 THEN 
+            SET v_fine_amt = (v_mdays - 15) * 5;
+        ELSEIF v_mdays >= 30 THEN [cite: 96]
+            SET v_fine_amt = (15 * 5) + (v_mdays - 30) * 50; 
+        END IF;
+        
+        -- Update status to 'returned'
+        UPDATE borrower_t7 SET status = 'r' 
+        WHERE roll_no = p_roll_no AND name_of_book = p_bookname; 
+        
+        -- Insert fine if applicable (CURDATE() for today's date)
+        IF v_fine_amt > 0 THEN [cite: 100]
+            INSERT INTO fine_t7 VALUES(p_roll_no, CURDATE(), v_fine_amt); 
+        END IF;
+        
+        -- Update message with fine amount
+        SET v_message = CONCAT('Book returned successfully. Fine amount: ', v_fine_amt);
+    
     END IF;
     
-    -- Insert, letting AUTO_INCREMENT handle the Roll number.
-    INSERT INTO Result(Name, Class) VALUES(s_name, s_class);
-END $
+    -- Select the final message as output
+    SELECT v_message AS 'Result';
+
+END$$
+-- Reset delimiter
 DELIMITER ;
 
--- === Part 4: Procedure to Call proc_Grade for all Students ===
--- In MySQL, the Oracle anonymous block (Part 4) must be a stored procedure
--- to use a cursor.
-DELIMITER $
-DROP PROCEDURE IF EXISTS proc_Process_All_Students $
-CREATE PROCEDURE proc_Process_All_Students()
-BEGIN
-    -- Variables for cursor
-    DECLARE done INT DEFAULT FALSE;
-    DECLARE s_name_cursor varchar(10);
-    DECLARE s_marks_cursor int;
-    
-    -- Declare cursor
-    DECLARE stud_cursor CURSOR FOR SELECT name, total_marks FROM Stud_Marks;
-    
-    -- Declare 'not found' handler
-    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+-- 5. Call the procedure to test it
+-- Example: Return Rahul's book (Roll 3, pokemon)
+CALL sp_return_book(3, 'pokemon');
 
-    OPEN stud_cursor;
-    
-    read_loop: LOOP
-        FETCH stud_cursor INTO s_name_cursor, s_marks_cursor;
-        IF done THEN
-            LEAVE read_loop;
-        END IF;
-        -- Calling the procedure for each row
-        CALL proc_Grade(s_name_cursor, s_marks_cursor);
-    END LOOP;
-    
-    CLOSE stud_cursor;
-END $
-DELIMITER ;
+-- Example: Try returning a book that doesn't exist
+CALL sp_return_book(99, 'nonexistent book');
 
--- === Call the new procedure to process the marks ===
-CALL proc_Process_All_Students();
-
--- === Part 5: Stored Function (totalStudents) ===
-DELIMITER $
-DROP FUNCTION IF EXISTS totalStudents $
-CREATE FUNCTION totalStudents(
-    class_name varchar(10)
-)
-RETURNS int
-READS SQL DATA -- MySQL hint
-BEGIN
-    DECLARE total int DEFAULT 0;
-    SELECT count(*) INTO total FROM Result 
-    WHERE Class = class_name;
-    RETURN total;
-END $
-DELIMITER ;
-
--- === Part 6: Calling the Function ===
--- The PL/SQL block (Part 6) becomes a simple SELECT statement.
-SET @class_n = 'First Class';
-SELECT CONCAT('Total students in ', @class_n, ': ', totalStudents(@class_n)) AS Result_Output;
-
--- === Part 7: Verify Results ===
-SELECT * FROM Stud_Marks;
-SELECT * FROM Result;
+-- 6. Verify the results
+SELECT * FROM borrower_t7; 
+SELECT * FROM fine_t7; 
