@@ -1,0 +1,107 @@
+ -- === Part 1: Table Creation ===
+CREATE TABLE Stud_Marks(
+    name varchar(10), 
+    total_marks int
+);
+
+-- Note: Added AUTO_INCREMENT and PRIMARY KEY for the 'Roll' column.
+-- This fixes the bug in the original procedure where Roll was always 1.
+CREATE TABLE Result(
+    Roll int AUTO_INCREMENT PRIMARY KEY, 
+    Name varchar(10), 
+    Class varchar(10)
+);
+
+-- === Part 2: Data Insertion ===
+INSERT INTO Stud_Marks VALUES('ABC', 1000);
+INSERT INTO Stud_Marks VALUES('XYZ', 900);
+INSERT INTO Stud_Marks VALUES('PQR', 850);
+INSERT INTO Stud_Marks VALUES('LMN', 800);
+INSERT INTO Stud_Marks VALUES('RST', 950);
+
+-- === Part 3: Stored Procedure (proc_Grade) ===
+DELIMITER $
+DROP PROCEDURE IF EXISTS proc_Grade $
+CREATE PROCEDURE proc_Grade(
+    IN s_name varchar(10), 
+    IN marks int
+)
+BEGIN
+    DECLARE s_class varchar(10);
+    -- The s_roll logic from the original is removed; AUTO_INCREMENT handles it.
+    
+    IF marks <= 1500 AND marks >= 990 THEN
+        SET s_class = 'Distinction';
+    ELSEIF marks <= 989 AND marks >= 900 THEN
+        SET s_class = 'First Class';
+    ELSEIF marks <= 899 AND marks >= 825 THEN
+        SET s_class = 'Higher Second Class';
+    ELSE
+        SET s_class = 'Fail';
+    END IF;
+    
+    -- Insert, letting AUTO_INCREMENT handle the Roll number.
+    INSERT INTO Result(Name, Class) VALUES(s_name, s_class);
+END $
+DELIMITER ;
+
+-- === Part 4: Procedure to Call proc_Grade for all Students ===
+-- In MySQL, the Oracle anonymous block (Part 4) must be a stored procedure
+-- to use a cursor.
+DELIMITER $
+DROP PROCEDURE IF EXISTS proc_Process_All_Students $
+CREATE PROCEDURE proc_Process_All_Students()
+BEGIN
+    -- Variables for cursor
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE s_name_cursor varchar(10);
+    DECLARE s_marks_cursor int;
+    
+    -- Declare cursor
+    DECLARE stud_cursor CURSOR FOR SELECT name, total_marks FROM Stud_Marks;
+    
+    -- Declare 'not found' handler
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+    OPEN stud_cursor;
+    
+    read_loop: LOOP
+        FETCH stud_cursor INTO s_name_cursor, s_marks_cursor;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+        -- Calling the procedure for each row
+        CALL proc_Grade(s_name_cursor, s_marks_cursor);
+    END LOOP;
+    
+    CLOSE stud_cursor;
+END $
+DELIMITER ;
+
+-- === Call the new procedure to process the marks ===
+CALL proc_Process_All_Students();
+
+-- === Part 5: Stored Function (totalStudents) ===
+DELIMITER $
+DROP FUNCTION IF EXISTS totalStudents $
+CREATE FUNCTION totalStudents(
+    class_name varchar(10)
+)
+RETURNS int
+READS SQL DATA -- MySQL hint
+BEGIN
+    DECLARE total int DEFAULT 0;
+    SELECT count(*) INTO total FROM Result 
+    WHERE Class = class_name;
+    RETURN total;
+END $
+DELIMITER ;
+
+-- === Part 6: Calling the Function ===
+-- The PL/SQL block (Part 6) becomes a simple SELECT statement.
+SET @class_n = 'First Class';
+SELECT CONCAT('Total students in ', @class_n, ': ', totalStudents(@class_n)) AS Result_Output;
+
+-- === Part 7: Verify Results ===
+SELECT * FROM Stud_Marks;
+SELECT * FROM Result;
