@@ -65,7 +65,7 @@ BEGIN
         WHERE roll_no = p_roll_no AND name_of_book = p_bookname; 
         
         -- Insert fine if applicable (CURDATE() for today's date)
-        IF v_fine_amt > 0 THEN [cite: 100]
+        IF v_fine_amt > 0 THEN 
             INSERT INTO fine_t7 VALUES(p_roll_no, CURDATE(), v_fine_amt); 
         END IF;
         
@@ -91,3 +91,4 @@ CALL sp_return_book(99, 'nonexistent book');
 -- 6. Verify the results
 SELECT * FROM borrower_t7; 
 SELECT * FROM fine_t7; 
+
